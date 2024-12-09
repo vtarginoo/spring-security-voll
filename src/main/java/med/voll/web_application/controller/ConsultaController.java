@@ -5,12 +5,16 @@ import med.voll.web_application.domain.RegraDeNegocioException;
 import med.voll.web_application.domain.consulta.ConsultaService;
 import med.voll.web_application.domain.consulta.DadosAgendamentoConsulta;
 import med.voll.web_application.domain.medico.Especialidade;
+import med.voll.web_application.domain.usuario.Usuario;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+
 
 @Controller
 @RequestMapping("consultas")
@@ -32,24 +36,26 @@ public class ConsultaController {
     }
 
     @GetMapping
-    public String carregarPaginaListagem(@PageableDefault Pageable paginacao, Model model) {
-        var consultasAtivas = service.listar(paginacao);
+    public String carregarPaginaListagem(@PageableDefault Pageable paginacao, Model model, @AuthenticationPrincipal Usuario logado) {
+        var consultasAtivas = service.listar(paginacao, logado);
         model.addAttribute("consultas", consultasAtivas);
         return PAGINA_LISTAGEM;
     }
 
     @GetMapping("formulario")
+    @PreAuthorize("hasRole('ATENDENTE') OR hasRole('PACIENTE')")
     public String carregarPaginaAgendaConsulta(Long id, Model model) {
         if (id != null) {
             model.addAttribute("dados", service.carregarPorId(id));
         } else {
-            model.addAttribute("dados", new DadosAgendamentoConsulta(null, null, "", null, null));
+            model.addAttribute("dados", new DadosAgendamentoConsulta(null, null, null, null, null));
         }
 
         return PAGINA_CADASTRO;
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ATENDENTE') OR hasRole('PACIENTE')")
     public String cadastrar(@Valid @ModelAttribute("dados") DadosAgendamentoConsulta dados, BindingResult result, Model model) {
         if (result.hasErrors()) {
             model.addAttribute("dados", dados);
